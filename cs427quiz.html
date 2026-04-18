@@ -1,0 +1,2207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS427 练习题系统 (Quiz 1-8, 11)</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --sidebar-bg: #f8f9fa;
+            --text-dark: #202124;
+            --text-light: #5f6368;
+            --success: #1e8e3e;
+            --danger: #d93025;
+            --bg: #f0f2f5;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+            background-color: var(--bg);
+        }
+        #sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid #dadce0;
+            overflow-y: auto;
+            padding: 20px 0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+        .sidebar-header {
+            padding: 0 20px 20px 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-bottom: 1px solid #dadce0;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        .nav-item:hover {
+            background-color: #e8eaed;
+        }
+        .nav-item.active {
+            background-color: #e8f0fe;
+            color: var(--primary);
+            border-right: 4px solid var(--primary);
+        }
+        #main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .quiz-container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+        .quiz-meta {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 15px;
+        }
+        .question-type {
+            background: #e8f0fe;
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .question-type.multiple {
+            background: #fce8e6;
+            color: var(--danger);
+        }
+        .question-text {
+            font-size: 1.25rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+        .option-label {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px 20px;
+            border: 2px solid #dadce0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.05rem;
+        }
+        .option-label:hover:not(.disabled) {
+            background: #f8f9fa;
+            border-color: var(--primary);
+        }
+        .option-label input {
+            margin-top: 5px;
+            margin-right: 15px;
+            transform: scale(1.3);
+            cursor: pointer;
+        }
+        .option-label.disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1.05rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn:hover {
+            background-color: #1557b0;
+        }
+        .btn:disabled {
+            background-color: #dadce0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        #feedback-area {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 8px;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .feedback-correct {
+            background-color: #e6f4ea;
+            border-left: 6px solid var(--success);
+        }
+        .feedback-incorrect {
+            background-color: #fce8e6;
+            border-left: 6px solid var(--danger);
+        }
+        .explanation {
+            margin-top: 15px;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+        .action-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        #next-btn {
+            display: none;
+            background-color: #34a853;
+        }
+        #next-btn:hover {
+            background-color: #2d8a46;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">📚 CS427 题库系统</div>
+        <div id="nav-container">
+            </div>
+    </div>
+
+    <div id="main-content">
+        <div class="quiz-container">
+            <div class="quiz-meta">
+                <span id="quiz-source" style="font-weight: bold; font-size: 1.1rem;">请在左侧选择题库</span>
+                <span id="question-type-badge" class="question-type" style="display:none;"></span>
+            </div>
+            
+            <div id="question-text" class="question-text">
+                👈 请从侧边栏选择一个章节开始练习。
+            </div>
+
+            <div id="options-container" class="options-container">
+                </div>
+
+            <div class="action-row">
+                <button id="submit-btn" class="btn" onclick="submitAnswer()" style="display: none;">提交答案</button>
+                <button id="next-btn" class="btn" onclick="nextQuestion()">下一题 ➡</button>
+            </div>
+
+            <div id="feedback-area">
+                <h3 id="feedback-title" style="margin-top: 0; display: flex; align-items: center; gap: 10px;"></h3>
+                <div id="explanation-text" class="explanation"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 题库数据 (精选包含 Quiz 1,2,3,4,5,6,7,8,11)
+        // ==========================================
+        //let wrongQuestionsIds = JSON.parse(localStorage.getItem('wrongQuestions')) || [];
+        const questionsDB = [
+            // --- Quiz 1 ---
+            {
+        "quiz": "Quiz 1",
+        "text": "Which of the following is NOT a part of Software Development Life Cycle?",
+        "type": "single",
+        "options": [
+            "A. Requirements Phase",
+            "B. Design Phase",
+            "C. Implementation Phase",
+            "D. Evaluation Phase"
+        ],
+        "correctAnswers": [
+            "D. Evaluation Phase"
+        ],
+        "explanation": "正确选项 D： 根据讲义中定义的标准软件开发生命周期（SDLC），核心阶段包括：Requirements（需求）、Design（设计）、Implementation（实现）、Integration（集成）和 Maintenance（维护）。虽然“评估”在广义上存在于测试中，但它并不作为 SDLC 的一个独立一级阶段被列出。<br>错误选项说明： A、B、C 均为讲义中明确定义的 SDLC 核心活动阶段。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "The trinity of software project does NOT include which of the following?",
+        "type": "single",
+        "options": [
+            "A. Software System",
+            "B. Software Design",
+            "C. Software Users",
+            "D. Software Development Process"
+        ],
+        "correctAnswers": [
+            "B. Software Design"
+        ],
+        "explanation": "正确选项 B： 软件项目的“三位一体”（Trinity）是指：Process（过程）、System（系统） 和 Users（用户）。<br>错误选项说明： Software Design 只是“开发过程（Process）”中的一个环节或活动，而不是三位一体中的独立大类实体。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "______ provides flexibility for changing a component's internal design decisions without impacting the external code using this component's interface.",
+        "type": "single",
+        "options": [
+            "A. Project Management",
+            "B. Divide and Conquer",
+            "C. Inheritance",
+            "D. Information Hiding"
+        ],
+        "correctAnswers": [
+            "D. Information Hiding"
+        ],
+        "explanation": "正确选项 D： 大卫·帕纳斯（David Parnas）提出的 Information Hiding（信息隐藏） 核心思想就是：通过定义良好的接口隐藏内部的设计决策（“秘密”）。这样，当内部算法（如从数组换成链表）改变时，外部调用者只要接口不变，就完全不需要修改代码。<br>错误选项说明： 分而治之（B）是解决复杂性的方法；继承（C）是代码复用手段；它们都不直接描述“隐藏决策以解耦接口”这一概念。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "Which of the following is a characteristic of Software?",
+        "type": "single",
+        "options": [
+            "A. Malleable",
+            "B. Simple",
+            "C. Constant",
+            "D. Requiring a single person to develop"
+        ],
+        "correctAnswers": [
+            "A. Malleable"
+        ],
+        "explanation": "正确选项 A： Malleable（易塑性/可变性） 是软件最显著的特征。弗雷德·布鲁克斯提到，软件可以根据想象力随时打磨和重做。<br>错误选项说明：<br>Simple：软件本质是极其复杂的（Complex）。<br>Constant：软件是不断演进的，而不是恒定不变的。<br>Single person：软件工程通常涉及多人（Multi-person）协作。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "Which of the following roles is/are project stakeholders of a software project? (Select the best answer)",
+        "type": "single",
+        "options": [
+            "A. Support Engineer",
+            "B. Designer",
+            "C. Tester",
+            "D. All of the above"
+        ],
+        "correctAnswers": [
+            "D. All of the above"
+        ],
+        "explanation": "正确选项 D： 讲义明确指出，除了核心的开发者（Developers）、用户（Users）和客户（Customers），其他如支持工程师、设计师、测试员、运维人员等，只要与项目利益相关，都是 Stakeholders。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "Is the following statement TRUE? \"In the context of a software project, users are different from customers.\"",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "A. True"
+        ],
+        "explanation": "正确选项 A： 客户（Customer）是买单的人，而用户（User）是真正操作软件的人。在很多企业级项目中，这两个角色是完全分开的（例如家长买玩具给孩子玩）。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "The following statement is true or false? \"Adding more team members helps solve software crisis.\"",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "B. False"
+        ],
+        "explanation": "正确选项 B： 根据著名的布鲁克斯定律（Brooks's Law）：“向进度落后的项目中增加人手，只会使项目更加落后”。<br>知识点： 因为新人的加入会带来指数级增长的沟通成本和管理开销，这不但不能解决早期的“软件危机”，反而可能加剧延期。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "John is an efficient programmer and is open to learn and improve. However, John has no prior experience of working in a team. Which of the following attributes does John most importantly needs to have to become a successful software engineer?",
+        "type": "single",
+        "options": [
+            "A. Working alone",
+            "B. Being defensive about his work",
+            "C. Ability to efficiently/effectively interact and work in a team",
+            "D. None. John already has the required skills."
+        ],
+        "correctAnswers": [
+            "C. Ability to efficiently/effectively interact and work in a team"
+        ],
+        "explanation": "正确选项 C： 讲义中区分“编程”和“软件工程”的一个核心维度就是多人协作（Multi-person development）。一个优秀的程序员不一定能成为优秀的软件工程师，除非他具备团队协作和沟通的能力。<br>错误选项说明： 守着自己的代码不放（Defensive）是团队合作的大忌。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "Which of the statements below is NOT true?",
+        "type": "single",
+        "options": [
+            "A. Software engineering primarily concerns about a Multi-Person Development effort",
+            "B. Software engineering primarily concerns about writing a single version of a program",
+            "C. Software engineering and programming are two different concepts"
+        ],
+        "correctAnswers": [
+            "B. Software engineering primarily concerns about writing a single version of a program"
+        ],
+        "explanation": "正确选项 B： 软件工程关注的是多版本演进（Multiple versions）。<br>知识点： “编写单一版本（Single version）”通常被定义为普通的 Programming。软件工程必须考虑随着时间推移的维护和版本更迭。"
+    },
+    {
+        "quiz": "Quiz 1",
+        "text": "Which of the following does NOT belong to the competing goals of software project?",
+        "type": "single",
+        "options": [
+            "A. Time used by developers to develop the software",
+            "B. Cost for the customers to pay the software project team to develop the software",
+            "C. Quality of the developed software",
+            "D. Market share occupied by the developed software"
+        ],
+        "correctAnswers": [
+            "D. Market share occupied by the developed software"
+        ],
+        "explanation": "正确选项 D： 软件项目目标的“不可能三角”包括：Good (Quality)、Fast (Time)、Cheap (Cost)。<br>错误选项说明： 市场份额（Market share）属于业务或市场营销目标，而不属于软件工程项目管理中定义的三大核心竞争性技术目标。<br><br>💡 总结：核心考点提示<br>Software Engineering $\\neq$ Programming：SE = 编程 + 团队 + 时间（多版本）。<br>Malleability & Complexity：这是软件区别于硬件的根本物理属性。<br>Information Hiding：David Parnas 的神级理论，通过接口封装“秘密”。<br>The Trinity：Process, System, Users。"
+    },
+            
+
+            // --- Quiz 2 ---
+            {
+        "quiz": "Quiz 2",
+        "text": "Which of the following is a situation under which using a waterfall model may be undesirable?",
+        "type": "single",
+        "options": [
+            "A. Frequently changing requirements",
+            "B. Mission-critical use case",
+            "C. Customer with clear objective",
+            "D. Large development team"
+        ],
+        "correctAnswers": [
+            "A. Frequently changing requirements"
+        ],
+        "explanation": "正确选项 A： 讲义指出，瀑布模型的最大缺点是难以应对需求变更。因为它要求在进入下一阶段前必须完成并验证前一阶段，一旦需求在后期发生变化，将导致巨大的返工（Rework）成本。<br>错误选项说明：<br>B (任务关键型)：这类项目反而倾向于瀑布模型，因为它强调详尽的文档和严格的验证。<br>C (目标明确)：这是瀑布模型的理想应用场景。<br>D (大型团队)：瀑布模型提供的清晰里程碑和结构化方法有助于大型团队的协调。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "The Elaboration stage in the Rational Unified Process (RUP) includes which of the following activities:",
+        "type": "single",
+        "options": [
+            "A. Implement further improvement from initial version",
+            "B. Implement initial version",
+            "C. Determining features",
+            "D. Testing/using the software"
+        ],
+        "correctAnswers": [
+            "B. Implement initial version"
+        ],
+        "explanation": "正确选项 B： 讲义明确指出，RUP 的 Elaboration（细化） 阶段是为了缓解风险，并在此阶段结束时制作出系统的 Initial version（初始版本/架构基线）。<br>错误选项说明：<br>C (确定功能)：属于 Inception（初始） 阶段的任务。<br>D (测试/使用)：属于 Transition（交付） 阶段的任务。<br>A (进一步改进)：属于 Construction（构建） 阶段的任务。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "A team of 6 developers have been assigned to develop a web application to monitor statuses of the used 3rd party services (whose requirements can be updated frequently and which are not mission/financial/safety-critical ones). Which of the following software development models best suits the purpose?",
+        "type": "single",
+        "options": [
+            "A. Waterfall Model",
+            "B. Spiral Model",
+            "C. Scrum Model",
+            "D. Chaos Model"
+        ],
+        "correctAnswers": [
+            "C. Scrum Model"
+        ],
+        "explanation": "正确选项 C： 根据讲义中的选型因素：<br>Size：6人（小团队 $\\le 12$人 $\\rightarrow$ Agile）。<br>Dynamism：需求频繁更新（$\\rightarrow$ Agile）。<br>Criticality：非关键系统（$\\rightarrow$ Agile）。<br>Scrum 是敏捷开发（Agile）的代表，最契合这种灵活、小型的项目。<br>错误选项说明： Waterfall 适合稳定需求；Spiral 适合高风险大型项目；Chaos 不是一个标准的过程模型。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Extreme Programming (XP) has which of the following advantages?",
+        "type": "single",
+        "options": [
+            "A. Comprehensive documentation is prepared throughout the process.",
+            "B. The customers are closely engaged throughout the process, not just only the beginning.",
+            "C. All features are released at once",
+            "D. The resulting software has high fault tolerance."
+        ],
+        "correctAnswers": [
+            "B. The customers are closely engaged throughout the process, not just only the beginning."
+        ],
+        "explanation": "正确选项 B： 敏捷宣言和 XP 强调 \"Customer collaboration over contract negotiation\"。讲义提到客户需要参与规划游戏（Planning Game）并在整个过程中与工程师紧密合作。<br>错误选项说明： XP 追求“工作的软件”而非“详尽的文档”（A）；提倡增量交付而非一次性发布所有功能（C）。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Scrum Process does not include which of the following activities?",
+        "type": "single",
+        "options": [
+            "A. Daily Scrum Meeting",
+            "B. Quarterly Team Reflection",
+            "C. Prioritizing Product-Backlog Tasks",
+            "D. Delivering Product Increment After a Sprint"
+        ],
+        "correctAnswers": [
+            "B. Quarterly Team Reflection"
+        ],
+        "explanation": "正确选项 B： Scrum 的标准活动包括：每日站立会议（A）、产品待办列表排序（C）和 Sprint 结束后的增量交付（D）。讲义中未提及“季度团队反思”，通常 Scrum 的回顾（Retrospective）是在每个 Sprint（通常 2-4 周）结束后进行的。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Which of the following projects prefers plan-driven methodology over agile methodology?",
+        "type": "single",
+        "options": [
+            "A. Chatting-room website",
+            "B. Video-game simulator",
+            "C. Phone calculator",
+            "D. Software for rockets"
+        ],
+        "correctAnswers": [
+            "D. Software for rockets"
+        ],
+        "explanation": "正确选项 D： 火箭软件属于 Safety-critical（生命安全关键型） 系统。讲义指出，对于这类高关键性项目，必须采用计划驱动（Plan-driven）方法（如瀑布模型）来保证极高的可靠性和严谨的验证。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Which of the following situation belongs to risks in software development?",
+        "type": "single",
+        "options": [
+            "A. Late delivery",
+            "B. Wrong feature requirement",
+            "C. Team dissolution",
+            "D. All of above"
+        ],
+        "correctAnswers": [
+            "D. All of above"
+        ],
+        "explanation": "正确选项 D： 讲义列举了常见的风险项：进度延误（A）、需求理解错误（B）、团队成员流失（C）。这些都是可能对项目产生负面影响的潜在未来损害。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "For the above Gantt chart (Image 1), which of the following statements is wrong?",
+        "type": "single",
+        "options": [
+            "A. The relationship between tasks 1 and 2 satisfies the Start-To-Start constraint",
+            "B. The relationship between tasks 2 and 3 satisfies the Finish-To-Start constraint",
+            "C. The relationship between tasks 3 and 4 satisfies the Finish-To-Finish constraint",
+            "D. The relationship between tasks 1 and 4 satisfies the Finish-To-Start constraint"
+        ],
+        "correctAnswers": [
+            "D. The relationship between tasks 1 and 4 satisfies the Finish-To-Start constraint"
+        ],
+        "explanation": "正确选项 D (即该陈述错误)： 观察甘特图：<br>Task 1 在 Day 2 结束。<br>Task 4 在 Day 2 开始。<br>Finish-To-Start 的含义是：前序任务结束后，后序任务才能开始。图中 Task 4 并没有等到 Task 1 结束就开始了，因此不符合该约束。<br>其他选项分析：<br>A (SS)：1 在 Day 1 开始，2 在 Day 2 开始。2 在 1 开始后开始，满足。<br>B (FS)：2 在 Day 3 结束，3 在 Day 4 开始。满足。<br>C (FF)：3 在 Day 5 结束，4 也在 Day 5 结束。满足。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "For the above PERT chart (Image 2), which of the following is the correct critical path sequence?",
+        "type": "single",
+        "options": [
+            "A. B->C->E",
+            "B. B->D->E",
+            "C. A->B->C->E",
+            "D. A->B->D->E"
+        ],
+        "correctAnswers": [
+            "D. A->B->D->E"
+        ],
+        "explanation": "正确选项 D： 关键路径是耗时最长的路径。<br>路径 1 ($A \\rightarrow B \\rightarrow C \\rightarrow E$): $6 + 3 + 7 = 16$<br>路径 2 ($A \\rightarrow B \\rightarrow D \\rightarrow E$): $6 + 10 + 5 = **21**$<br>路径 2 的总时长最长，因此 A-B-D-E 是关键路径。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "In a PERT chart, which of the following statements is correct?",
+        "type": "single",
+        "options": [
+            "A. An arrow edge between two events indicates the data flow across the two events",
+            "B. The label on the arrow edge represents the importance of the event",
+            "C. The graph for the PERT chart is a directed acyclic graph (DAG)",
+            "D. Events on the critical paths have slack time"
+        ],
+        "correctAnswers": [
+            "C. The graph for the PERT chart is a directed acyclic graph (DAG)"
+        ],
+        "explanation": "正确选项 C： PERT 图必须是有向无环图（DAG），因为任务不能形成循环依赖（否则项目永远无法结束）。<br>错误选项说明：<br>A：边代表的是 Task（任务/活动），而不是数据流。<br>B：标签代表的是 Estimated time（预估时间），而不是重要性。<br>D：关键路径上的任务 Slack 为 0，它们没有任何机动时间。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Freelance developer Jane... source code valued at $50,000... failure probability 2%. What is the risk exposure?",
+        "type": "single",
+        "options": [
+            "A. $50,000",
+            "B. $1,000",
+            "C. $49,000",
+            "D. $2"
+        ],
+        "correctAnswers": [
+            "B. $1,000"
+        ],
+        "explanation": "正确选项 B： 根据公式：<br>$$Risk \\ Exposure = Probability \\times Cost$$<br>$$0.02 \\times 50,000 = 1,000$$"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Jane decides to purchase an off-site backup plan. What type of risk mitigation strategy?",
+        "type": "single",
+        "options": [
+            "A. Risk avoidance",
+            "B. Risk protection",
+            "C. Risk acceptance",
+            "D. Risk monitoring"
+        ],
+        "correctAnswers": [
+            "B. Risk protection"
+        ],
+        "explanation": "正确选项 B： 讲义将购买保险或使用备份等补偿财务损失的手段归类为 Risk protection（风险保护）。<br>错误选项说明： Risk avoidance 指的是直接取消有风险的活动（如不写这段代码了）。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Which of the following is not a XP practice?",
+        "type": "single",
+        "options": [
+            "A. Test-driven development",
+            "B. Planning game",
+            "C. Pair programming",
+            "D. Sequential design"
+        ],
+        "correctAnswers": [
+            "D. Sequential design"
+        ],
+        "explanation": "正确选项 D： XP 提倡迭代和持续重构，而不是“顺序化设计（Sequential design）”。顺序化设计是瀑布模型的特征。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "A team of software engineers decide to use Agile methodology for their new software project. Which of the following is not a justifying reason for their choice?",
+        "type": "single",
+        "options": [
+            "A. The customers are constantly anticipating new features for the software to be developed",
+            "B. As a start-up company, the development team is rather small",
+            "C. In a recently conducted questionnaire, the software engineers in the team commonly indicate that they prefer an ordered culture",
+            "D. Majority of the software engineers in the team are having high skill levels, being hired from top software companies in recent years."
+        ],
+        "correctAnswers": [
+            "C. In a recently conducted questionnaire, the software engineers in the team commonly indicate that they prefer an ordered culture"
+        ],
+        "explanation": "正确选项 C： 讲义在选择方法论的五个因素中提到，如果团队文化偏好 Order（秩序/稳定），则应选择 Plan-driven。偏好变化（Chaos）的文化才适合 Agile。"
+    },
+    {
+        "quiz": "Quiz 2",
+        "text": "Which one will usually cost fewer man-hours to produce the two components?",
+        "type": "single",
+        "options": [
+            "A. Two developers working in parallel",
+            "B. Two developers engaging in pair-programming developing the components sequentially"
+        ],
+        "correctAnswers": [
+            "A. Two developers working in parallel"
+        ],
+        "explanation": "正确选项 A： 讲义指出，结对编程（Pair Programming）能缩短自然耗时，但会增加**总人时（Man-hours）**成本。并行开发虽然质量可能稍低且周期较长，但每个人独立工作，总的人力成本（Man-hours）通常更低。<br><br>💡 总结：项目管理的“黄金法则”<br>关键路径 (Critical Path)：它决定了项目的死期，路径上的 Slack 永远是 0。<br>风险暴露 (Risk Exposure)：它是概率与损失的赌局，决定了你应该在哪儿投保险。<br>结对编程 (Pairing)：它是“用金钱（人时）换取质量和速度（自然时间）”的交易。"
+    },
+
+            // --- Quiz 3 ---
+            {
+        "quiz": "Quiz 3",
+        "text": "In the following options, which is NOT among the reasons to write requirements according to the lecture video?",
+        "type": "single",
+        "options": [
+            "A. Managers could use requirements to allocate resources and manage the development",
+            "B. Developers could implement the system according to requirements",
+            "C. Testers could test the software developed against the requirements.",
+            "D. Support engineers could use the requirements to decide whether using a system shall be discontinued or not."
+        ],
+        "correctAnswers": [
+            "D. Support engineers could use the requirements to decide whether using a system shall be discontinued or not."
+        ],
+        "explanation": "正确选项 D： 讲义中提到的需求编写理由主要围绕开发周期的核心角色：管理者（分配资源）、开发者（实施）和测试员（验证）。虽然支持工程师会使用需求进行维护，但“决定是否停用系统（discontinued）”通常是更高层的业务或生命周期决策，不属于编写需求规格说明书的主要初衷。<br>错误选项说明： A、B、C 恰好对应了讲义中提到的需求在项目管理、实施和质量保障中的三大支柱作用。<br>【相关知识点】<br>需求的受众：管理者、开发者、测试员、客户。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following statements is a functional requirement?",
+        "type": "single",
+        "options": [
+            "A. The search service shall answer a query in 2 seconds.",
+            "B. The server code shall be written in C.",
+            "C. A text message shall be sent to the customer's phone when the customer signs up.",
+            "D. A new user shall be able to finish ordering an equipment by navigating through the system UI within 10 minutes."
+        ],
+        "correctAnswers": [
+            "C. A text message shall be sent to the customer's phone when the customer signs up."
+        ],
+        "explanation": "正确选项 C： 功能需求（Functional Requirements） 描述的是系统“做什么”，即输入与输出之间的具体动作。注册 $\\rightarrow$ 发短信，是一个完整的功能行为。<br>错误选项说明：<br>A (性能)：属于非功能需求（NFR），描述的是“做得多快”。<br>B (约束)：属于非功能需求（NFR），限制了实现的手段。<br>D (可用性)：属于非功能需求（NFR），描述的是用户体验的质量指标。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following statements is a non-functional requirement?",
+        "type": "single",
+        "options": [
+            "A. The system shall record users' status when they log in to the system.",
+            "B. The table's full contents shall be displayed within 3 seconds.",
+            "C. Every invoice shall be assigned with a unique identifier.",
+            "D. A text message shall be sent to the customer's phone when the customer signs up."
+        ],
+        "correctAnswers": [
+            "B. The table's full contents shall be displayed within 3 seconds."
+        ],
+        "explanation": "正确选项 B： 这是一个典型的**性能（Performance）**要求。非功能需求描述的是系统的质量属性或约束（-ilities）。<br>错误选项说明： A、C、D 描述的都是具体的业务逻辑或操作行为，属于功能需求。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following is typically NOT used as notations for requirement specifications?",
+        "type": "single",
+        "options": [
+            "A. UML",
+            "B. User story",
+            "C. Test plan",
+            "D. Data flow diagram"
+        ],
+        "correctAnswers": [
+            "C. Test plan"
+        ],
+        "explanation": "正确选项 C： 测试计划（Test Plan） 是质量保证文档，用于指导如何进行测试。虽然它基于需求编写，但它本身不是记录需求的“符号或表达法（Notation）”。<br>错误选项说明： A (UML 图)、B (用户故事)、D (数据流图) 都是讲义中列举的记录需求的标准表达方式。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "When writing a mandatory requirement, you wrote \"The driver's door ______ be closed once the car is moving.\"",
+        "type": "single",
+        "options": [
+            "A. shall",
+            "B. will",
+            "C. should"
+        ],
+        "correctAnswers": [
+            "A. shall"
+        ],
+        "explanation": "正确选项 A： 在标准的需求工程语言中，\"Shall\" 代表强制性（Mandatory）。<br>错误选项说明：<br>B (Will)：代表未来的事实或系统不可控的预期。<br>C (Should)：代表建议或期望（Desirable），但非强制。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following is a descriptive statement?",
+        "type": "single",
+        "options": [
+            "A. A person shall not borrow more than three books at the same time.",
+            "B. Train doors shall always remain closed when the train is moving.",
+            "C. The same person cannot be located in two different buildings at the same time.",
+            "D. A user shall not use the same registration code more than once."
+        ],
+        "correctAnswers": [
+            "C. The same person cannot be located in two different buildings at the same time."
+        ],
+        "explanation": "正确选项 C： 描述性陈述（Descriptive Statement） 描述的是客观存在的物理规律或自然法则。一个人不能同时出现在两个地方，这是由物理规律决定的，不可更改。<br>错误选项说明： A、B、D 都是规定性陈述（Prescriptive Statement），它们是人为定义的规则（业务逻辑），可以通过修改程序或政策来改变。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following statements of requirements engineering is NOT correct?",
+        "type": "single",
+        "options": [
+            "A. Requirements engineering is about discovering stakeholders' needs along with adjusting their expectations.",
+            "B. Requirements engineering is concerned with designing a software system with respect to the requirements.",
+            "C. Requirements engineering helps engineers understand and adjust requirements.",
+            "D. Requirements engineering is concerned with real-world goals for functions of a software system and constraints on the software system."
+        ],
+        "correctAnswers": [
+            "B. Requirements engineering is concerned with designing a software system with respect to the requirements."
+        ],
+        "explanation": "正确选项 B（即表述错误的选项）： 讲义强调：需求工程关注的是 \"What\"（系统应该做什么），而 \"Designing\"（设计） 关注的是 \"How\"（系统如何被构建）。设计属于软件工程的下一个阶段，不属于需求工程的核心任务。<br>错误选项说明： A、C、D 完美概括了需求工程中发现、沟通、目标与约束的核心属性。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following is NOT an example of elicitation techniques?",
+        "type": "single",
+        "options": [
+            "A. Questionnaires, surveys, and interviews.",
+            "B. Brainstorming and focus group.",
+            "C. User acceptance testing",
+            "D. Early feedback gathering from stakeholders."
+        ],
+        "correctAnswers": [
+            "C. User acceptance testing"
+        ],
+        "explanation": "正确选项 C： 用户验收测试（UAT） 发生在开发完成后，用于验证系统。虽然能提供反馈，但它不属于前期的**需求获取（Elicitation）**技术。<br>错误选项说明： A (传统技术)、B (群体技术)、D (原型法/早期反馈) 均是讲义列出的获取技术。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following statements is true about requirements elicitation?",
+        "type": "single",
+        "options": [
+            "A. It is about guiding the developers to produce correct products according to the requirements",
+            "B. It is about making sure that the tasks given by the product manager are correct",
+            "C. It is about discovering stakeholder expectations and adjusting the expectations",
+            "D. It is about making sure that the stakeholders understand how the functionalities are implemented"
+        ],
+        "correctAnswers": [
+            "C. It is about discovering stakeholder expectations and adjusting the expectations"
+        ],
+        "explanation": "正确选项 C： 这是讲义给出的标准定义：发现需求（Discovering）与调整预期（Adjusting）。<br>错误选项说明： D 错误，因为利益相关者不需要关心功能“如何实现（Implemented）”。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following is NOT a main component for use case requirements?",
+        "type": "single",
+        "options": [
+            "A. Use case.",
+            "B. Use case diagrams.",
+            "C. Actors.",
+            "D. Test cases."
+        ],
+        "correctAnswers": [
+            "D. Test cases."
+        ],
+        "explanation": "正确选项 D： 讲义指出用例需求包含三大部分：Use Case (文本描述)、Use Case Diagrams (图示) 和 Actors (参与者)。Test Cases 是测试产物，不属于需求组件。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following statements is NOT true about Use Case?",
+        "type": "single",
+        "options": [
+            "A. A use case cannot be associated with more than one actor.",
+            "B. A use case describes a sequence of events that happen when the system responds to an action.",
+            "C. The description of a use case needs to be a major piece of functionalities being complete from the beginning to end.",
+            "D. The description of a use case needs to be easy to read, short but still tell a story."
+        ],
+        "correctAnswers": [
+            "A. A use case cannot be associated with more than one actor."
+        ],
+        "explanation": "正确选项 A（即表述错误的选项）： 一个用例可以与多个参与者（Actors）相关联。例如，“取款”用例可以涉及“储户”和“ATM维护员”。<br>错误选项说明： B、C、D 都是讲义中提到的编写高质量用例的准则。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following statement is NOT true about Actors?",
+        "type": "single",
+        "options": [
+            "A. Actors can provide inputs to the system.",
+            "B. Actors can receive outputs from the system.",
+            "C. Actors are inside of the system and thus part of the system.",
+            "D. Actors can both provide inputs and receive outputs from the system."
+        ],
+        "correctAnswers": [
+            "C. Actors are inside of the system and thus part of the system."
+        ],
+        "explanation": "正确选项 C（即表述错误的选项）： 核心原则——参与者必须是系统外部的（External）。<br>错误选项说明： A、B、D 描述了参与者与系统的合法交互方式（仅入、仅出、双向）。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of following Use Cases is used for helping decide design scope?",
+        "type": "single",
+        "options": [
+            "A. Actor-goal list",
+            "B. All of Actor-goal list, Use case brief, Causal use cases, and Fully addressed use cases",
+            "C. Casual use cases",
+            "D. Fully dressed use cases"
+        ],
+        "correctAnswers": [
+            "A. Actor-goal list"
+        ],
+        "explanation": "正确选项 A： 讲义明确指出：Actor-goal list 和 Use case brief 帮助决定设计范围（Design Scope）；而后两种（Casual, Fully dressed）主要是告诉开发者怎么做。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "Which of the following statements is NOT correct for Causal and Fully Dressed use cases?",
+        "type": "single",
+        "options": [
+            "A. Causal and fully dressed use cases are used to tell developers how to implement some requirements.",
+            "B. Causal and fully dressed use cases emphasize \"main success scenarios\".",
+            "C. Causal and fully dressed use cases should also include requirements on dealing with failures.",
+            "D. Causal use cases consist of normal paragraphs but fully dressed use cases have labeled sections."
+        ],
+        "correctAnswers": [
+            "A. Causal and fully dressed use cases are used to tell developers how to implement some requirements."
+        ],
+        "explanation": "正确选项 A（即表述错误的选项）： 这是一个极其微妙的陷阱。用例描述的是行为（What/Behavior），而不是实现细节（How/Implement）。它们告诉开发人员系统应该如何表现，但不会干涉代码内部的实现逻辑。<br>错误选项说明： B、C、D 描述了这两种详细用例的结构和目的。"
+    },
+    {
+        "quiz": "Quiz 3",
+        "text": "\"The book-order process shall be user-friendly.\"\nThe requirement above shows which of the following common flaws in a requirement?",
+        "type": "single",
+        "options": [
+            "A. Unmeasurability",
+            "B. Contradiction",
+            "C. Poor structuring",
+            "D. Inadequacy"
+        ],
+        "correctAnswers": [
+            "A. Unmeasurability"
+        ],
+        "explanation": "正确选项 A： \"User-friendly\" 是主观的，无法通过定量指标进行测量或验证。<br>相关知识点： 需求应具备 Measurability（可测性），以便测试。"
+    },
+
+            // --- Quiz 4 ---
+            {
+        "quiz": "Quiz 4",
+        "text": "True or False: Under the abstraction of using a Unix file descriptor, a process needs to know a file's actual name in order to get access to it.",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "B. False"
+        ],
+        "explanation": "正确理由 [Correct]： 讲义中明确提到：“The process does not need to know the name of the specific file, but just use the file descriptors to inform the kernel on which file to access.”（进程不需要知道具体的文件名，只需使用文件描述符来通知内核访问哪个文件）。<br>错误理由 [Incorrect]： 文件描述符（File Descriptor）正是为了隐藏底层文件名、路径等复杂细节而存在的抽象句柄。<br>相关知识点 [Related Knowledge]： 数据抽象 [Data Abstraction] 在 Unix 内核中的体现。内核通过维护进程级的文件描述符表（File Descriptor Table）映射到系统级的文件表（File Table），实现了访问资源与资源名称的解耦。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "If functions in a module have similar functionalities, then this module has ________",
+        "type": "single",
+        "options": [
+            "A. coincidental cohesion",
+            "B. communicational cohesion",
+            "C. logical cohesion",
+            "D. temporal cohesion"
+        ],
+        "correctAnswers": [
+            "C. logical cohesion"
+        ],
+        "explanation": "正确理由 [Correct]： 讲义定义 逻辑内聚 [Logical Cohesion] 为：“Elements have similar functions such as different kinds of sorting algorithms...”（元素具有相似的功能，例如不同种类的排序算法）。<br>错误理由 [Incorrect]：<br>A (巧合)：元素间无意义。<br>B (通信)：元素操作相同数据。<br>D (时间)：元素仅因同时执行（如初始化）而放在一起。<br>相关知识点 [Related Knowledge]： 内聚 [Cohesion] 衡量模块内部的紧密度。逻辑内聚处于内聚等级的较低端，因为它通常需要外部传入控制标志来决定执行哪一个功能。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "Assume that you are an architect for a data-processing project... the data flow from one component to the next component. Each component subsequently transforms the data and passes the transformed data to the next component. The architecture style that you are using in this application is ______",
+        "type": "single",
+        "options": [
+            "A. layered/tiered style",
+            "B. architectural style",
+            "C. pipe-and-filter style"
+        ],
+        "correctAnswers": [
+            "C. pipe-and-filter style"
+        ],
+        "explanation": "正确理由 [Correct]： 题目描述了典型的“数据流转换”场景：数据从一个组件流向下一个组件，每个组件进行转换（Transform）。这符合 管道-过滤器 [Pipe-and-Filter] 风格的特征。<br>错误理由 [Incorrect]：<br>A (分层)：强调的是功能层级的调用，而非数据的流式处理。<br>B (架构风格)：这是一个分类名称，不是具体的风格名称。<br>相关知识点 [Related Knowledge]： 管道-过滤器风格：组件是过滤器（Filters），连接器是管道（Pipes）。它是单向的、增量处理的，非常适合数据分析系统。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "A product group... each of multiple teams is formed for reflecting the component maintained by the team, such as the compiler front-end team and the compiler back-end team. The reflection of such team organization is known as _______",
+        "type": "single",
+        "options": [
+            "A. Brook’s Law",
+            "B. Conway’s Law",
+            "C. Moore’s Law",
+            "D. Bell’s Law"
+        ],
+        "correctAnswers": [
+            "B. Conway’s Law"
+        ],
+        "explanation": "正确理由 [Correct]： 康威定律 [Conway's Law] 指出：“Organizations which design systems... are constrained to produce designs which are copies of the communication structures of these organizations.”（设计系统的组织，其产生的设计方案是该组织沟通结构的缩影）。编译器前端/后端团队的划分直接对应了编译器前端/后端架构的组件。<br>相关知识点 [Related Knowledge]： 软件架构与组织架构的同构性。为了实现高内聚，应将负责同一模块的成员分在同一物理位置或团队中。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "In the UNIX pipe-and-filter architecture, which of the following is NOT true?",
+        "type": "single",
+        "options": [
+            "A. The data get processed as soon as they arrive",
+            "B. Filters know each other and share state",
+            "C. Data can be passed in only one direction",
+            "D. Filters can be implemented in parallel"
+        ],
+        "correctAnswers": [
+            "B. Filters know each other and share state"
+        ],
+        "explanation": "正确理由 [Correct]： 讲义明确指出：“These filters are independent from each other, without share state, without any knowledge of the upstream or downstream filters.”（过滤器彼此独立，不共享状态，也不知晓上下游过滤器）。因此 B 是错误的描述。<br>其他选项说明 [Others]：<br>A 对：增量处理。<br>C 对：管道是单向的（One-directional）。<br>D 对：由于无状态且独立，不同的过滤器可以并行运行。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "Which of following is NOT a function of connectors?",
+        "type": "single",
+        "options": [
+            "A. Interactions among components",
+            "B. Encapsulates computation and/or data in the system",
+            "C. Rules that govern those interactions"
+        ],
+        "correctAnswers": [
+            "B. Encapsulates computation and/or data in the system"
+        ],
+        "explanation": "正确选项 B [Correct]： “封装计算和/或数据”是 组件 [Component] 的定义。<br>错误理由 [Incorrect]： 连接器 [Connector] 负责的是组件之间的交互机制（A）和管理这些交互的规则（C）。<br>相关知识点 [Related Knowledge]： C&C 模型：组件负责“干活”，连接器负责“协调”。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "The component in the MVC pattern for receiving user-gesture events is named _______",
+        "type": "single",
+        "options": [
+            "A. model",
+            "B. controller",
+            "C. view"
+        ],
+        "correctAnswers": [
+            "C. view"
+        ],
+        "explanation": "正确选项 C [Correct]： 讲义指出：“The view component for what such user gestures to the controller component.”（视图组件将用户手势转发给控制器组件）。<br>理由 [Reason]： 用户直接操作的是界面（View），例如点击按钮。View 捕获这些动作（HTTP 请求或 GUI 交互），然后通知 Controller 进行处理。<br>相关知识点 [Related Knowledge]： MVC 职责划分：View 是用户交互的入口。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "A chart, a pie table, and a bar table can show the same information from the database, due to which feature of MVC?",
+        "type": "single",
+        "options": [
+            "A. Ability to provide multiple views",
+            "B. Support for asynchronous technique",
+            "C. The modification not affecting the entire model"
+        ],
+        "correctAnswers": [
+            "A. Ability to provide multiple views"
+        ],
+        "explanation": "正确选项 A [Correct]： 讲义在 MVC 收益部分明确举例：一个 Model 对应三个 View 对象（饼图、曲线图、直方图）。这就是“多视图支持”特性的体现。<br>相关知识点 [Related Knowledge]： 解耦 [Decoupling]：由于 Model 不依赖 View，因此可以为同一个 Model 挂载无数个不同的 View。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "Which of the statement about software modularity is NOT correct with respect to benefits of software modularity?",
+        "type": "single",
+        "options": [
+            "A. Modules are robust",
+            "B. A module can use other modules",
+            "C. Modules can be separately compiled and stored in a library",
+            "D. Modules are mostly dependent"
+        ],
+        "correctAnswers": [
+            "D. Modules are mostly dependent"
+        ],
+        "explanation": "正确选项 D [Correct]： 模块化的目标是 低耦合 [Low Coupling]，即模块应尽可能地独立 [Independent]。选项 D 说模块是“高度依赖的（mostly dependent）”，这违反了模块化的基本初衷。<br>相关知识点 [Related Knowledge]： 理想的模块化应达到“高内聚、低耦合”。"
+    },
+    {
+        "quiz": "Quiz 4",
+        "text": "Which of the following is the worst type of module cohesion among the following options?",
+        "type": "single",
+        "options": [
+            "A. Logical Cohesion",
+            "B. Temporal Cohesion",
+            "C. Functional Cohesion",
+            "D. Coincidental Cohesion"
+        ],
+        "correctAnswers": [
+            "D. Coincidental Cohesion"
+        ],
+        "explanation": "正确选项 D [Correct]： 讲义中按照从低到高的顺序列举了内聚类型。巧合内聚 [Coincidental Cohesion] 处于最底层，表示模块内部没有任何逻辑联系，是质量最差的。<br>排序参考 [Ranking]：<br>Coincidental (最差)<br>Logical<br>Temporal<br>Functional (最好)"
+    },
+
+            // --- Quiz 5 ---
+            {
+        "quiz": "Quiz 5",
+        "text": "In Class Diagrams, relationship between part and whole can be represented by which of the following?",
+        "type": "single",
+        "options": [
+            "A. Generalization",
+            "B. Aggregation",
+            "C. Division",
+            "D. None of the above"
+        ],
+        "correctAnswers": [
+            "B. Aggregation"
+        ],
+        "explanation": "正确选项 B [Correct]： 讲义明确指出：“Aggregation（聚合） indicates a stronger association, where one class belongs to a collection [属于一个集合]... being the part-whole relationship.”<br>错误选项说明 [Incorrect]：<br>A (Generalization)：表示“is-a”关系（继承），即父子关系，而非部分与整体的关系。<br>C (Division)：不是标准 UML 关系术语。<br>相关知识点： 部分-整体关系有两种形式：Aggregation（聚合，空心菱形） 和 Composition（组合，实心菱形）。两者都描述了“整体-部分”的结构。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "Consider the Class Diagram (Image 1): Which of the following statements is True about Author?",
+        "type": "single",
+        "options": [
+            "A. An author may have written nothing.",
+            "B. Every author has contributed up to four articles.",
+            "C. Every author has contributed at least one article and at least one book.",
+            "D. Every book has up to one author."
+        ],
+        "correctAnswers": [
+            "A. An author may have written nothing."
+        ],
+        "explanation": "正确选项 A [Correct]： 观察图 1 中的多重性（Multiplicity）：<br>Author 到 Article 的连线在 Author 这一端的基数是 $0..*$。<br>Author 到 Book 的连线在 Author 这一端的基数也是 $0..*$。<br>基数 0 意味着“可以为零”。因此，一个作者可能还没有发表任何文章或书籍。<br>错误选项说明 [Incorrect]：<br>B：$1..4$ 标注在 Article 一端，表示“一篇 Article 有 1 到 4 个作者”，而不是“一个作者只能写 4 篇”。<br>C：由于基数都包含 $0$，所以不是“必须（Every）”至少贡献一个。<br>D：Book 到 Author 的连线标注为 $0..*$，意味着一本书可以有多个作者。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "Consider the Class diagram in Question 2: Which relationship best describes the relationship between Publication and Article?",
+        "type": "single",
+        "options": [
+            "A. Composition",
+            "B. Generalization",
+            "C. Aggregation",
+            "D. None of the above"
+        ],
+        "correctAnswers": [
+            "B. Generalization"
+        ],
+        "explanation": "正确选项 B [Correct]： 图 1 中，Article 和 Book 通过一根带有**空心三角形箭头（Hollow arrow）**的线指向 Publication。<br>理由 [Reason]： 这是标准的**泛化（Generalization/Inheritance）**符号，表示 Article 是一种 Publication（Article is a Publication）。<br>相关知识点： 泛化关系用于提取公共特征。在本例中，year 和 id 是所有出版物的共性，被放在了父类 Publication 中。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "Consider the class diagram from Question 2: Which of the following statements is NOT True about the Class Diagram?",
+        "type": "single",
+        "options": [
+            "A. Every publication has an Author.",
+            "B. Every Article has at least one Author.",
+            "C. Not every Book has an Author.",
+            "D. None of the above."
+        ],
+        "correctAnswers": [
+            "A. Every publication has an Author."
+        ],
+        "explanation": "正确选项 A（即错误的陈述）： * 观察 Publication 的子类：Article 要求 $1..4$ 个作者，但 Book 允许 $0..*$ 个作者。<br>如果一个 Publication 实例是 Book 且当前没有作者（$0$），那么“Every publication has an Author”这一说法就是错误的。<br>选项分析 [Others]：<br>B 为真：Article 的基数是 $1..4$，所以至少有 1 个。<br>C 为真：Book 的基数是 $0..*$，所以可能没有作者。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "Consider Image 2: Based on this Class diagram, which of the following statements about the City and State classes is correct?",
+        "type": "single",
+        "options": [
+            "A. No two cities can have the same name",
+            "B. Each city can be in zero or one state",
+            "C. Each city is in exactly one state",
+            "D. No two states can have the same name"
+        ],
+        "correctAnswers": [
+            "C. Each city is in exactly one state"
+        ],
+        "explanation": "正确选项 C [Correct]： 图 2 中，State 端有一个实心黑色菱形（Black diamond）。<br>理由 [Reason]： 这代表**组合（Composition）关系。组合具有不共享（Non-shared）**的特性，即一个“部分”（City）在同一时刻只能属于一个“整体”（State）。<br>相关知识点： 组合关系比聚合更强。在地理逻辑中，一个城市物理上只能属于一个特定的州。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "From the pizza restaurant requirements, which of the following is LEAST likely to be a class or attribute?",
+        "type": "single",
+        "options": [
+            "A. Pizza / Customer / Sauce / Drink",
+            "B. Order",
+            "C. Size"
+        ],
+        "correctAnswers": [
+            "B. Order"
+        ],
+        "explanation": "正确选项 B [Correct]： 根据讲义中的“名词-动词分析法”：<br>\"A customer can order a pizza...\" 在这句话中，\"order\" 是一个动词（Verb）。<br>动词通常映射为操作（Operation/Method），而不是类或属性。<br>注意 [Note]： 虽然在复杂的电商系统中 Order 会被建模为类，但基于本题给出的简短需求描述，它更直接地表现为一个动作（Operation）。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "Which of the following is MOST likely to be an operation?",
+        "type": "single",
+        "options": [
+            "A. Base",
+            "B. Order",
+            "C. Sauce",
+            "D. None of the above"
+        ],
+        "correctAnswers": [
+            "B. Order"
+        ],
+        "explanation": "正确选项 B [Correct]： 同上题，“Order”作为动词，是典型的**操作（Operation）**候选者。<br>错误选项说明 [Incorrect]： Base（底料）和 Sauce（酱料）是事物的名称（Nouns），通常映射为类或属性。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "In UML diagrams, how are abstract classes distinguished from concrete classes?",
+        "type": "single",
+        "options": [
+            "A. They are shown in the same way",
+            "B. Class names for abstract classes are shown in italics",
+            "C. Class names for concrete classes are shown in italics",
+            "D. Abstract classes are shown as boxes with bold outlines"
+        ],
+        "correctAnswers": [
+            "B. Class names for abstract classes are shown in italics"
+        ],
+        "explanation": "正确选项 B [Correct]： 讲义明确规定：“We use the italics font [斜体] for abstract class name in the class diagram.”<br>相关知识点： 抽象类不能被直接实例化（Cannot be instantiated directly），在图中用斜体是为了在视觉上将其与具体类区分开。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "Which of the following terms best describes the case where a Queue class is implemented using an internal instance of Array?",
+        "type": "single",
+        "options": [
+            "A. Creation",
+            "B. Composition",
+            "C. Generalization",
+            "D. Singularity"
+        ],
+        "correctAnswers": [
+            "B. Composition"
+        ],
+        "explanation": "正确选项 B [Correct]： 讲义提到：“One class has an attribute, being an instance of another class.” 如果 Queue 内部维护一个 Array 实例来存储数据，且 Array 的生命周期随 Queue 的创建而开始、随销毁而结束，这被称为组合（Composition）。<br>相关知识点： 这种通过组合已有类来实现新功能的技术也常被称为“对象组合”。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "True or False: UML class diagrams are a good way to represent the algorithmic nature of the interactions between classes.",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "B. False"
+        ],
+        "explanation": "正确选项 False [Correct]： 讲义明确警告：“A class diagram does not capture algorithm or behavior details.”（类图不捕捉算法或行为细节）。类图是静态的结构展示。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "The vertical dimension of a sequence diagram represents which of the following?",
+        "type": "single",
+        "options": [
+            "A. Message",
+            "B. Time",
+            "C. Objects",
+            "D. Replies"
+        ],
+        "correctAnswers": [
+            "B. Time"
+        ],
+        "explanation": "正确选项 B [Correct]： 讲义指出：“The timing of the sequence of events is going from top to down in the vertical order.”（事件序列的时间顺序在垂直方向上从上往下延伸）。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "True or False: Class Diagrams can show timing-related information.",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "B. False"
+        ],
+        "explanation": "正确选项 False [Correct]： 类图展示的是类之间的静态关系（如继承、关联），无法表达“先调用 A，再调用 B”的时间逻辑。这是**时序图（Sequence Diagram）**的任务。"
+    },
+    {
+        "quiz": "Quiz 5",
+        "text": "Which of the following determines the order of events in a Sequence Diagram?",
+        "type": "single",
+        "options": [
+            "A. The order of events based on their object-creation time",
+            "B. The order of events based on their triggering time",
+            "C. The order of events based on their importance",
+            "D. The order of events based on their duration time"
+        ],
+        "correctAnswers": [
+            "B. The order of events based on their triggering time"
+        ],
+        "explanation": "正确选项 B [Correct]： 时序图的核心是触发顺序（Triggering time）。消息从上到下排列，位置越靠上，发生的越早。<br><br>相关知识点： 垂直轴代表时间的流动，水平轴上的对象顺序（Horizontal order）则没有特定语义意义。"
+    },
+
+            // --- Quiz 6 ---
+            {
+        "quiz": "Quiz 6",
+        "text": "Which of the following patterns does NOT belong to software Design pattern categories?",
+        "type": "single",
+        "options": [
+            "A. Creational patterns",
+            "B. Structural patterns",
+            "C. Behavioral patterns",
+            "D. None of the above"
+        ],
+        "correctAnswers": [
+            "D. None of the above"
+        ],
+        "explanation": "解析：根据 GoF 的定义，A、B、C 是三大标准官方分类。因此“以上皆非”是正确答案。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "Which of the following statements is true about the Observer pattern?",
+        "type": "single",
+        "options": [
+            "A. The state of the observed subject cannot be changed once initialized",
+            "B. There can be only one observer",
+            "C. It separates the display of object state from the object itself",
+            "D. It separates the display and the display implementation"
+        ],
+        "correctAnswers": [
+            "C. It separates the display of object state from the object itself"
+        ],
+        "explanation": "解析：观察者模式的核心目标是解耦。它将对象的状态（Subject）与状态的显示（Observer）分离开来，使得一个对象可以有多个不同的显示视图。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "Which of the following is true about Behavioral patterns?",
+        "type": "single",
+        "options": [
+            "A. Concerned with the process of object creation",
+            "B. Deal with the composition of classes or objects",
+            "C. Characterize the ways in which classes or objects interact and distribute responsibility",
+            "D. None of the above"
+        ],
+        "correctAnswers": [
+            "C. Characterize the ways in which classes or objects interact and distribute responsibility"
+        ],
+        "explanation": "解析：<br>A 是创建型的职责。<br>B 是结构型的职责。<br>C 准确描述了行为型模式的特征：关注对象交互和责任分配。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "Which of the following statements is NOT true about using Design patterns?",
+        "type": "single",
+        "options": [
+            "A. Design patterns are reusable templates that help programmers solve some reoccurring issues in software development",
+            "B. A class cannot participate in more than one Design pattern",
+            "C. Using Design patterns improves code readability and flexibility"
+        ],
+        "correctAnswers": [
+            "B. A class cannot participate in more than one Design pattern"
+        ],
+        "explanation": "解析：选项 B 是错误的。在实际的复杂系统中，一个类经常扮演多重角色。例如，一个 Task 类既可以是 Composite 模式中的组件，同时也可以是 Observer 模式中的 Subject（被观察者）。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "Which of the following patterns allows a class behavior or its algorithm to be changed at run time?",
+        "type": "single",
+        "options": [
+            "A. Composite pattern",
+            "B. Visitor pattern",
+            "C. Iterator pattern",
+            "D. Strategy pattern"
+        ],
+        "correctAnswers": [
+            "D. Strategy pattern"
+        ],
+        "explanation": "解析：策略模式通过组合不同的算法对象，允许在程序运行过程中根据需要动态更换算法。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "Which of the following is NOT true about the Composite pattern?",
+        "type": "single",
+        "options": [
+            "A. The Leaf class implements all methods in the Component interface",
+            "B. The Composite class implements methods to manipulate children",
+            "C. The Component interface is the abstraction for all components, including composite ones",
+            "D. The Component interface includes methods to manipulate children"
+        ],
+        "correctAnswers": [
+            "D. The Component interface includes methods to manipulate children"
+        ],
+        "explanation": "解析：这是一个典型的“安全 vs 透明”权衡题。根据老师讲义中的标准类图，操作子节点的方法（如 add/remove）通常只出现在 Composite 类中，而不出现在通用接口 Component 或 Leaf 中，以防止叶子节点误调。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "In a 3D object manipulation library, objects as well as groups of objects need to support similar 3D transformations (e.g. resize, rotation). Which pattern could be best suitable?",
+        "type": "single",
+        "options": [
+            "A. Observer pattern",
+            "B. Composite pattern",
+            "C. Iterator pattern",
+            "D. State pattern"
+        ],
+        "correctAnswers": [
+            "B. Composite pattern"
+        ],
+        "explanation": "解析：当需要以统一的方式处理“个体对象”和“对象组（组合）”时，Composite 模式是标准答案。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "A hedge fund uses multiple trading strategies that need to be switched on-the-fly during a trading session. Which pattern could be best suitable?",
+        "type": "single",
+        "options": [
+            "A. Observer pattern",
+            "B. Strategy pattern",
+            "C. Iterator pattern",
+            "D. Visitor pattern"
+        ],
+        "correctAnswers": [
+            "B. Strategy pattern"
+        ],
+        "explanation": "解析：关键词是 \"switched on-the-fly\"（即运行时动态切换）以及 \"strategies\"。这完全符合策略模式的定义。"
+    },
+    {
+        "quiz": "Quiz 6",
+        "text": "Which of the following is NOT True about the Interpreter pattern?",
+        "type": "single",
+        "options": [
+            "A. The interpret method has \"Context\" as one of its method parameter types",
+            "B. The TerminalExpression class has no children and can be interpreted directly",
+            "C. The abstract syntax tree is made with Context instances",
+            "D. The NonTerminalExpression maintains a list of Expressions as children"
+        ],
+        "correctAnswers": [
+            "C. The abstract syntax tree is made with Context instances"
+        ],
+        "explanation": "解析：<br>A, B, D 都是正确描述。<br>C 是错误的。抽象语法树是由 Expression 及其子类（Terminal/Non-terminal）构建的。Context 仅仅是作为一个辅助参数被传入 interpret() 方法，用于存储全局状态或变量值，它本身并不是树的节点。"
+    },
+
+            // --- Quiz 7 ---
+            {
+        "quiz": "Quiz 7",
+        "text": "Which of the following is NOT a purpose of testing?",
+        "type": "single",
+        "options": [
+            "A. To improve code quality",
+            "B. To spot code faults",
+            "C. To document code",
+            "D. To guarantee code is fully correct"
+        ],
+        "correctAnswers": [
+            "D. To guarantee code is fully correct"
+        ],
+        "explanation": "正确选项 D：根据图灵奖得主 Edsger W. Dijkstra 的名言：“测试只能证明程序有错，不能证明程序无错” 。因此，测试无法“保证”代码绝对正确。<br>错误选项 A、B：讲义明确指出测试的目的是通过发现故障（Faults）来改进质量，并衡量质量 。<br>错误选项 C：测试可以探测软件行为，从而比单纯的需求文档更好地帮助人们理解和记录软件规格 。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following do NOT belong to the types of test activities?",
+        "type": "single",
+        "options": [
+            "A. Test Design",
+            "B. Test Automation",
+            "C. Test Implementation",
+            "D. Test Evaluation"
+        ],
+        "correctAnswers": [
+            "C. Test Implementation"
+        ],
+        "explanation": "正确选项 C：在 Tao Xie 教授的课程体系（及常见的测试生命周期）中，通常将活动划分为：测试设计（Design）、测试自动化（Automation/Implementation of scripts）、测试执行（Execution）和测试评估（Evaluation）。其中“Implementation”通常指软件开发的实现阶段，虽然有时指脚本编写，但在选项对比中，它不属于标准的三大/四大核心测试活动分类。<br>错误选项 A、B、D：这些都是标准的测试活动阶段：设计输入值、编写脚本、分析结果 。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following test activities embeds test values into executable scripts?",
+        "type": "single",
+        "options": [
+            "A. Test Design",
+            "B. Test Automation",
+            "C. Test Implementation",
+            "D. Test Execution"
+        ],
+        "correctAnswers": [
+            "B. Test Automation"
+        ],
+        "explanation": "正确选项 B：测试自动化是指将测试用例转化为可自动运行的脚本的过程，这一步涉及到将具体的测试值嵌入到代码或脚本中。<br>错误选项 A：测试设计是推导输入值的过程，但不涉及将其转化为可执行脚本。<br>错误选项 D：测试执行是运行脚本的过程。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following statements about testing activities is correct?",
+        "type": "single",
+        "options": [
+            "A. Designing tests requires relatively little knowledge about the domain and programs.",
+            "B. In order to embed test values into executable scripts, one needs to understand the theory very well.",
+            "C. It is always efficient to assign the same person for all testing activities.",
+            "D. Test automation is useful to have but could also be boring to construct."
+        ],
+        "correctAnswers": [
+            "D. Test automation is useful to have but could also be boring to construct."
+        ],
+        "explanation": "正确选项 D：这是一个常见的观点。自动化测试非常有价值，但编写和维护大量的脚本往往是重复且枯燥的。<br>错误选项 A：设计测试需要深入了解领域知识，以便知道预期的正确行为是什么 。<br>错误选项 C：由不同的人（如独立的 QA 组）进行测试能减少开发者的心理偏见 。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following statements about test cases is correct?",
+        "type": "single",
+        "options": [
+            "A. Test cases cannot be used as documents as they are considered as two very different categories.",
+            "B. Only developers can construct test case for their programs.",
+            "C. The process of developing test cases can also help developers to understand the requirements."
+        ],
+        "correctAnswers": [
+            "C. The process of developing test cases can also help developers to understand the requirements."
+        ],
+        "explanation": "正确选项 C：讲义提到，编写测试用例可以探测软件行为，帮助人们学习软件，甚至发现需求或设计中的不完善之处 。<br>错误选项 A：测试用例是理解软件行为的“活文档”。<br>错误选项 B：开发者、QA 小组、用户甚至领域专家都可以编写测试用例 。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "When should we write test cases?",
+        "type": "single",
+        "options": [
+            "A. Before code is written",
+            "B. While writing code",
+            "C. After code is written",
+            "D. All of above"
+        ],
+        "correctAnswers": [
+            "D. All of above"
+        ],
+        "explanation": "正确选项 D：测试编写贯穿始终。可以在需求阶段后（Before）、实现阶段（While）或集成阶段（After）编写对应的测试用例 。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which statement about manual testing and automated testing is NOT correct?",
+        "type": "single",
+        "options": [
+            "A. When regression tests are conducted very often, we should prefer doing automated testing.",
+            "B. To test a Graphics Interface, we should build automated tests after the interface design is stable.",
+            "C. Tests that don't require re-execution should be done manually.",
+            "D. Automated tests always finds more bugs than manual tests."
+        ],
+        "correctAnswers": [
+            "D. Automated tests always finds more bugs than manual tests."
+        ],
+        "explanation": "正确选项 D：这是不正确的陈述。自动化测试擅长重复执行已知用例，而手动测试在探索性测试（Exploratory Testing）和发现全新类型的 Bug 方面往往更灵活、更有效。<br>错误选项 A、C：自动化适合高频重复任务，手动适合低频或一次性任务。<br>错误选项 B：UI 界面稳定后再做自动化可以显著减少维护成本。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following statements is true about tests?",
+        "type": "single",
+        "options": [
+            "A. Tests must be written in the form of code",
+            "B. User interfaces cannot be tested",
+            "C. Projects can have more test code than source code",
+            "D. Tests can always spot bugs"
+        ],
+        "correctAnswers": [
+            "C. Projects can have more test code than source code"
+        ],
+        "explanation": "正确选项 C：在高质量的工程实践中，为了覆盖所有的边缘情况（Edge cases），测试代码的行数超过源代码是非常普遍且健康的现象。<br>错误选项 A：测试可以是手动的步骤说明，不一定非要是代码。<br>错误选项 D：测试可能因为输入选得不好（见 PIE 模型）而漏掉 Bug 。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following statements about writing tests as a developer is NOT correct?",
+        "type": "single",
+        "options": [
+            "A. Developers cannot always detect all faults even if they fully understand their implementations.",
+            "B. More people are encouraged to engage in writing tests in addition to developers.",
+            "C. When developers construct test suites, they may have a bias on software code or functions.",
+            "D. Only QA developers should develop test cases since they are experts in testing area."
+        ],
+        "correctAnswers": [
+            "D. Only QA developers should develop test cases since they are experts in testing area."
+        ],
+        "explanation": "正确选项 D：这是不正确的。虽然 QA 专家很重要，但开发者编写单元测试是行业标准，用户编写验收测试也至关重要 。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following is true about Black-box testing?",
+        "type": "single",
+        "options": [
+            "A. It is not feasible to thoroughly exercise all potential tests inputs.",
+            "B. Tests are written with knowledge of the internal workings to thoroughly test what is happening on the inside of the code.",
+            "C. Black-box testing is good at finding faults of extra logic.",
+            "D. Black-box testing is good and better for finding crashes, out of bounds failures, and file not closed failures."
+        ],
+        "correctAnswers": [
+            "A. It is not feasible to thoroughly exercise all potential tests inputs."
+        ],
+        "explanation": "正确选项 A：输入域通常是无限的或巨大的，穷尽测试在物理上是不可能的。<br>错误选项 B：这是白盒测试的定义。黑盒测试不看内部实现。<br>错误选项 C、D：这些（如多余逻辑、崩溃、内存溢出）通常需要结合内部代码结构（白盒）才能更有效地定位和触发。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following statements about White-box testing is NOT correct?",
+        "type": "single",
+        "options": [
+            "A. Methods like Equivalence Class and Boundary Value Analysis can also be applied in White-box testing.",
+            "B. Maintaining White-box test scripts could be very difficult if implementation details keep changing frequently.",
+            "C. White-box testing is usually very simple, so it does not require knowledge of programming and implementation."
+        ],
+        "correctAnswers": [
+            "C. White-box testing is usually very simple, so it does not require knowledge of programming and implementation."
+        ],
+        "explanation": "正确选项 C：这是不正确的。白盒测试要求测试者能够阅读并理解源代码逻辑，甚至需要编写复杂的测试脚本，对编程能力要求很高。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "A developer called Math.log(5) function that was supposed to return the natural logarithm value of the input, but returns 125 instead. According to the lecture slides, this is an example of:",
+        "type": "single",
+        "options": [
+            "A. Error",
+            "B. Failure",
+            "C. Fault"
+        ],
+        "correctAnswers": [
+            "A. Error"
+        ],
+        "explanation": "正确选项 A：根据 Tao Xie 教授的讲义，函数返回了一个错误的值（计算值与正确值不符），这在程序内部状态中被称为 Error。如果这个错误值随后导致了断言失败，则称为 Failure。<br>错误选项 C：Fault 是指代码中那行写错了的源码。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "According to the PIE model, which of the following conditions is NOT correct for a failure to be observed?",
+        "type": "single",
+        "options": [
+            "A. The location or locations in the program that contain the fault must be reached.",
+            "B. The state of the program must be incorrect.",
+            "C. The infected state must NOT propagate to cause some output of the program to be incorrect."
+        ],
+        "correctAnswers": [
+            "C. The infected state must NOT propagate to cause some output of the program to be incorrect."
+        ],
+        "explanation": "正确选项 C：根据 PIE 模型，必须满足传播（Propagation）条件，即错误的内部状态必须传播到输出端。该选项说“绝不能传播”，显然是错误的。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "Which of the following is NOT a metric for code coverage?",
+        "type": "single",
+        "options": [
+            "A. Method coverage",
+            "B. Branch coverage",
+            "C. Statement coverage",
+            "D. Parameter coverage"
+        ],
+        "correctAnswers": [
+            "D. Parameter coverage"
+        ],
+        "explanation": "正确选项 D：常见的覆盖率指标包括方法、分支和语句覆盖。参数覆盖不是软件测试中的标准通用指标。"
+    },
+    {
+        "quiz": "Quiz 7",
+        "text": "\"Dividing input conditions into groups and testing each group of inputs\" describes which of the following techniques for Black-box testing?",
+        "type": "single",
+        "options": [
+            "A. Boundary Value Analysis",
+            "B. Equivalence Class Partitioning",
+            "C. Decision Table Testing",
+            "D. Use case testing"
+        ],
+        "correctAnswers": [
+            "B. Equivalence Class Partitioning"
+        ],
+        "explanation": "正确选项 B：这是等价类划分的标准定义，即将输入数据划分为若干组，并认为每组内的代表性数据在发现错误方面是等效的。"
+    },
+
+            // --- Quiz 8 ---
+            {
+        "quiz": "Quiz 8",
+        "text": "True or False: A reason that a big test is worse than several small tests is that the later assertions won’t be executed if the preceding assertion fails.",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "A. True"
+        ],
+        "explanation": "【选项解析】<br>A 为正确： JUnit 的标准断言（Hard Assertions）具有“短路”特性。一旦某个断言失败，整个方法会抛出 AssertionError 并立即停止。如果把 10 个测试点写在一个“大测试”里，第 1 个挂了，后面 9 个都没机会跑。<br>B 为错误： 否定了 JUnit 的基本运行机制。除非使用 assertAll，否则顺序执行的断言必然受前面成败的影响。<br>【知识点】<br>测试独立性 (Test Isolation)：每个测试应该只关注一个点，确保“死得明白”。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "Which of the following is a valid JUnit API method signature?",
+        "type": "single",
+        "options": [
+            "A. static void assertEquals(char expected, char actual, double delta)",
+            "B. static void assertEquals(double expected, double actual, double delta)",
+            "C. static void assertEquals(long expected, long actual, double delta)"
+        ],
+        "correctAnswers": [
+            "B. static void assertEquals(double expected, double actual, double delta)"
+        ],
+        "explanation": "【选项解析】<br>B 为正确： double 和 float 是浮点数，计算中会有微小的精度误差，必须用 delta 指定一个可接受的差值范围（例如 $|expected - actual| \\leq delta$）。<br>A & C 为错误： char 和 long 都是精确的离散值。字符 'a' 就是 'a'，长整型 100 就是 100，不存在“差不多相等”的情况，所以加 delta 参数是无意义且不符合 API 设计的。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "Which of the following is correct about JUnit?",
+        "type": "single",
+        "options": [
+            "A. It provides test runners to run tests.",
+            "B. JUnit tests can be run automatically and they check their own test results and provide immediate feedback of failing or passing.",
+            "C. Both A and B",
+            "D. Neither A nor B"
+        ],
+        "correctAnswers": [
+            "C. Both A and B"
+        ],
+        "explanation": "【选项解析】<br>A 正确： JUnit 包含平台引擎（JUnit Platform），可以集成在 IDE（如 IntelliJ/Eclipse）或构建工具（Maven/Gradle）中运行测试。<br>B 正确： 这是单元测试框架的核心价值——自动化。它替人去对比结果并给出红绿条反馈。<br>C 为正确： 综合了以上两点。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "True or False: Testing can be used in the process of checking the functionalities of a software application to see whether it is working correctly as per its functional requirements.",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "A. True"
+        ],
+        "explanation": "【选项解析】<br>A 为正确： 这是测试的教科书定义。测试就是为了对齐“实际表现”与“需求文档（Functional Requirements）”。<br>B 为错误： 如果测试不是为了检查功能是否按需求工作，那它就失去了存在的意义。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "True or False: Annotating a public void method with @AfterEach causes that method to be run before each test method (i.e., a method annotated with @Test).",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "B. False"
+        ],
+        "explanation": "【选项解析】<br>A 为错误： 记混了 Before 和 After。<br>B 为正确： 根据讲义，@AfterEach 明确定义在每个测试方法执行之后运行，用于资源清理（如关闭数据库连接、清理缓存）。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "What will be the results of the above two assertions after the two test methods are run? (代码见原题)",
+        "type": "single",
+        "options": [
+            "A. Pass, Pass",
+            "B. Pass, Fail",
+            "C. Fail, Pass",
+            "D. Fail, Fail"
+        ],
+        "correctAnswers": [
+            "C. Fail, Pass"
+        ],
+        "explanation": "【选项解析】<br>assertSame(a1, a2) -> Fail： a1 和 a2 是两个不同的对象（new 了两次），在堆内存里的地址不同。assertSame 检查的是 a1 == a2。<br>assertEquals(a1, a2) -> Pass： 类 A 重写了 equals 方法，逻辑是只要 i 的值相等就返回 true。因为两个对象 i 都是 0，所以内容相等。<br>其他组合错误： 均未正确区分“引用相等”与“内容相等”。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "True or False: The above two unit tests have exactly the same effect at runtime. (代码见原题)",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "B. False"
+        ],
+        "explanation": "【选项解析】<br>A 为错误： 忽略了 assertAll 的特性。<br>B 为正确：<br>方法一用 assertAll：即使 isPrime(2) 挂了，isPrime(4) 也会跑。<br>方法二顺序执行：如果 isPrime(2) 挂了，整个方法报错退出，isPrime(4) 根本不会执行。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "Will the line annotated with comment of “line” get executed in a Windows operating system?* (代码见原题)",
+        "type": "single",
+        "options": [
+            "A. Yes",
+            "B. No"
+        ],
+        "correctAnswers": [
+            "B. No"
+        ],
+        "explanation": "【选项解析】<br>B 为正确： assumeFalse(...Windows...) 在 Windows 系统下的结果是“假设失败”。JUnit 会立即中止（Abort）该测试，不再执行后续代码（即 line* 所在的断言）。<br>A 为错误： 误解了 Assume 的作用。Assume 不是报错，是“不满足条件就别测了”。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "If a test method is a parameterized test, then the method should use the tag of ________ to provide arguments for each invocation... to specify the source of its arguments.",
+        "type": "single",
+        "options": [
+            "A. @Test",
+            "B. @ValueSource",
+            "C. @ParameterizedTest",
+            "D. @Class"
+        ],
+        "correctAnswers": [
+            "B. @ValueSource"
+        ],
+        "explanation": "【选项解析】<br>B 为正确： 题目问的是哪个标签用来提供参数（provide arguments / specify source）。@ValueSource 正是数据源注解之一。<br>A 错误： 用于普通无参测试。<br>C 错误： 它是用来标记方法身份的，告诉 JUnit 这是一个参数化测试，但它本身不提供具体数据。<br>D 错误： 无关注解。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "True or False: We can pass CSV values to test methods. We can specify the delimiter for multiple arguments in the test method.",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "A. True"
+        ],
+        "explanation": "【选项解析】<br>A 为正确： @CsvSource 允许通过字符串形式传入多列数据，并且支持 delimiter 参数（比如用分号 ; 代替逗号）。<br>B 为错误： 否定了参数化测试的灵活性。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "True or False: We can use @MethodSource to specify a parameterized factory method. Then the return type of this factory method can be Stream, Iterator, Iterable, or array of element sets.",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "A. True"
+        ],
+        "explanation": "【选项解析】<br>A 为正确： 讲义明确列出了这几种合法的工厂方法返回类型。<br>B 为错误： 否定了 Java 集合框架在测试数据生成中的广泛应用。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "What type of conversion does it use? (代码见原题，使用了 @ConvertWith)",
+        "type": "single",
+        "options": [
+            "A. Implicit Conversion",
+            "B. Explicit Conversion"
+        ],
+        "correctAnswers": [
+            "B. Explicit Conversion"
+        ],
+        "explanation": "【选项解析】<br>B 为正确： 只要在代码中通过 @ConvertWith 显式地指定了一个转换器类（如 CSVtoArray.class），这就被定义为“显式转换”。<br>A 为错误： 隐式转换是 JUnit 自动完成的（比如 String 转 int），不需要开发者写专门的转换器类并用注解标注。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "Which of the followings refers to the line annotated with comment “line1”? (代码见原题)",
+        "type": "single",
+        "options": [
+            "A. Assume",
+            "B. Arrange",
+            "C. Act",
+            "D. Assert"
+        ],
+        "correctAnswers": [
+            "A. Assume"
+        ],
+        "explanation": "【选项解析】<br>A 为正确： line1 是 assumeTrue(stk != null)。在 4A 模式中，第一步就是检查前提条件是否成立，即 Assume。<br>B、C、D 错误： 分别对应准备数据、执行操作和结果验证，不符合这一行的功能。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "We specifically listed, formulated, and tested all possible returns of observers. What guideline is this?",
+        "type": "single",
+        "options": [
+            "A. Assumption-first guideline",
+            "B. Property-first guideline"
+        ],
+        "correctAnswers": [
+            "A. Assumption-first guideline"
+        ],
+        "explanation": "【选项解析】<br>A 为正确： 该指南的核心就是“基于状态”。它通过观察者（Observers）的所有可能返回值组合来确定对象的当前状态。<br>B 为错误： Property-first 侧重于方法之间的交互逻辑（如 push 之后紧接 pop 应该得到什么），而不是单纯穷举观察者的状态。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "Which test generalization step has non-primitive objects as arguments?",
+        "type": "single",
+        "options": [
+            "A. Parameterize",
+            "B. Generalize test oracle",
+            "C. Add assumptions",
+            "D. Cross test generalize"
+        ],
+        "correctAnswers": [
+            "A. Parameterize"
+        ],
+        "explanation": "【选项解析】<br>A 为正确： 泛化的第一步是“参数化”。讲义提到，不仅要把数字（Primitive）提升为参数，也要把接收者对象（Non-primitive，如 Stack 对象）提升为参数。<br>B、C、D 错误： 分别对应断言泛化、添加保护条件和跨测试合并，不涉及参数定义阶段。"
+    },
+    {
+        "quiz": "Quiz 8",
+        "text": "Which test-generalization step uses AssumeTrue or AssumeFalse?",
+        "type": "single",
+        "options": [
+            "A. Parameterize",
+            "B. Generalize test oracle",
+            "C. Add assumptions",
+            "D. Cross test generalize"
+        ],
+        "correctAnswers": [
+            "C. Add assumptions"
+        ],
+        "explanation": "【选项解析】<br>C 为正确： 这是泛化的第三步。为了防止泛化后的测试传入 null 等非法参数导致崩溃，必须使用 Assume 进行过滤。<br>A、B、D 错误： 均不直接对应“添加保护性假设”这一特定动作。"
+    },
+
+            // --- Quiz 11 ---
+            {
+        "quiz": "Quiz 11",
+        "text": "Which of the following is the correct description of \"Failure\" in software engineering?",
+        "type": "single",
+        "options": [
+            "A. The cause of bugs",
+            "B. The symptoms of bugs",
+            "C. The products of bugs",
+            "D. The bugs"
+        ],
+        "correctAnswers": [
+            "B. The symptoms of bugs"
+        ],
+        "explanation": "正确选项 B： 讲义明确指出，**Failure（失效）**是“症状（Symptom）”或程序运行给出的错误结果。它是用户能看到的、表面的错误。<br>错误选项说明： A 和 D 描述的是 Fault（故障/缺陷）。Failure 只是结果，不是原因。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Which of the following is the correct description of \"Fault\" in software engineering?",
+        "type": "single",
+        "options": [
+            "A. The cause of bugs",
+            "B. The symptoms of bugs",
+            "C. The products of bugs",
+            "D. The bugs"
+        ],
+        "correctAnswers": [
+            "A. The cause of bugs"
+        ],
+        "explanation": "正确选项 A： **Fault（故障/缺陷）**是根源（Root Cause）。它是开发者在代码中写错的逻辑，导致了最后的失效。<br>错误选项说明： B 描述的是 Failure；D “Bugs”是一个口语化的统称，在学术定义中，我们要区分 Fault 和 Failure。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "\"Follow and watch the execution of programs to determine the cause of bugs\" is describing which of the following debugging behavior?",
+        "type": "single",
+        "options": [
+            "A. Backtracking",
+            "B. Cause elimination",
+            "C. Tracing",
+            "D. Delta Debugging"
+        ],
+        "correctAnswers": [
+            "C. Tracing"
+        ],
+        "explanation": "正确选项 C： 讲义定义 **Tracing（追踪）**为“通过收集执行信息（变量值、分支路径等）来观察（Watch）程序的运行”。<br>错误选项说明： Backtracking（回溯）是沿着错误传播链“往回找”；Cause Elimination（原因排除）是“列举并排除假设”。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Which of the following is used for tracing technique in debugging?",
+        "type": "single",
+        "options": [
+            "A. Print debugging",
+            "B. Breakpoint debugging",
+            "C. Assertion debugging",
+            "D. Single step debugging",
+            "E. All of above"
+        ],
+        "correctAnswers": [
+            "E. All of above"
+        ],
+        "explanation": "正确选项 E： 这些全部是观察程序运行状态的手段。讲义提到了打印（Print）、断点（Breakpoint）、断言（Assertion）和单步执行（Single stepping）。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Backtracking techniques in debugging does NOT involve which of the following?",
+        "type": "single",
+        "options": [
+            "A. Print debugging",
+            "B. Undo code changes",
+            "C. Record variable changes",
+            "D. Reverse instructions order"
+        ],
+        "correctAnswers": [
+            "D. Reverse instructions order"
+        ],
+        "explanation": "正确选项 D： **回溯（Backtracking）**是逻辑上的向后追溯，不是真的让计算机“倒序执行指令（Reverse instructions order）”。硬件指令流是不可逆的。<br>知识点： 回溯通常涉及查看过去的变量变化或通过撤销改动（Undo）来定位问题点。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "To pause execution when the program is running for debugging, you should ______________",
+        "type": "single",
+        "options": [
+            "A. Execute the code by memory address offset",
+            "B. Throw an error in the code",
+            "C. Trigger an interruption",
+            "D. Set a breakpoint"
+        ],
+        "correctAnswers": [
+            "D. Set a breakpoint"
+        ],
+        "explanation": "正确选项 D： 设置断点（Breakpoint）是让程序在特定位置暂停的最标准方法。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Which of the following is NOT true about testing and debugging?",
+        "type": "single",
+        "options": [
+            "A. Both testing and debugging can involve looking at source code",
+            "B. Testing finds failures; Debugging finds/corrects faults",
+            "C. Testing and debugging always fix the issues they identify.",
+            "D. Both testing and debugging improve code quality"
+        ],
+        "correctAnswers": [
+            "C. Testing and debugging always fix the issues they identify."
+        ],
+        "explanation": "正确选项 C： 这句话太绝对了。**Testing（测试）**只负责“发现”Failure，它本身不具备“修复”功能。只有调试（Debugging）包含 Fix 这一步。<br>错误选项解析： B 完美总结了两者的核心区别。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Is the following statement True or False?\n\"The fact that bugs cannot be reproduced indicates the bugs no longer exist.\"",
+        "type": "single",
+        "options": [
+            "A. True",
+            "B. False"
+        ],
+        "correctAnswers": [
+            "B. False"
+        ],
+        "explanation": "正确选项 B： 讲义提到，无法复现可能仅仅是因为环境、配置或随机性（如多线程竞争）导致的，并不意味着 Bug 消失了。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Is the following statement True or False?\n\"Debugging can result in the introduction of new bugs.\"",
+        "type": "single",
+        "options": [
+            "A. False",
+            "B. True"
+        ],
+        "correctAnswers": [
+            "B. True"
+        ],
+        "explanation": "正确选项 B： 这是常识，也是为什么要进行 Re-testing 的原因。修好一个 Fault 时，可能会引入新的故障（即回归缺陷）。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Which of the following is NOT a step in the debugging process?",
+        "type": "single",
+        "options": [
+            "A. Add the bug report in a tracker",
+            "B. Reproduce the bug",
+            "C. Trace the origins of the bug",
+            "D. Ignore the bug if it is minor",
+            "E. Isolate the causes for failure"
+        ],
+        "correctAnswers": [
+            "D. Ignore the bug if it is minor"
+        ],
+        "explanation": "正确选项 D： 调试流程旨在定位并修复。无视（Ignore）不是调试流程的一部分，而是一种管理决策。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Which of the following is NOT included in a bug report?",
+        "type": "single",
+        "options": [
+            "A. Environment related information",
+            "B. Support contact information",
+            "C. Problem history",
+            "D. Expected and Experienced behavior"
+        ],
+        "correctAnswers": [
+            "B. Support contact information"
+        ],
+        "explanation": "正确选项 B： 讲义列出的缺陷报告七大要素中，包含环境、历史、预期/实际行为、总结等。客户服务的联系方式通常不在技术性的 Bug 报告正文里。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "During the Tracking/reproducing process, the following was a description of a problem.\nThe editor crashes every time I write more than 250 words in arial font and font size 8.\nDuring one of the steps this was transformed to\nThe editor crashes every time I write more than 250 words in Arial font and font size 8 and the same problem was reproduced with font times roman and font sizes 8,10.\nWhich of the following steps best represents this step?",
+        "type": "single",
+        "options": [
+            "A. Summarization",
+            "B. Generalization",
+            "C. Reproducing",
+            "D. Isolation"
+        ],
+        "correctAnswers": [
+            "B. Generalization"
+        ],
+        "explanation": "正确选项 B： **泛化（Generalization）**是指研究其他条件下是否也会发生同样的问题。从 Arial 扩展到 Times Roman，是在寻找问题的共性。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "The problem occurs in Windows XP -> transformed to -> The problem occurs in Windows XP ONLY.\nWhich of the following steps best represents this step?",
+        "type": "single",
+        "options": [
+            "A. Isolate",
+            "B. Condense",
+            "C. Summarize",
+            "D. None of the above"
+        ],
+        "correctAnswers": [
+            "A. Isolate"
+        ],
+        "explanation": "正确选项 A： **隔离（Isolate）**是通过系统性地改变输入/环境，来缩小失效原因的范围。加上“ONLY”意味着排除了其他系统，锁定了具体范围。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Which of the following approaches is the MOST efficient to figure out the line of failure in a very large input file?",
+        "type": "single",
+        "options": [
+            "A. Binary Search",
+            "B. Linear Search",
+            "C. Delta Debugging",
+            "D. None of the above"
+        ],
+        "correctAnswers": [
+            "A. Binary Search"
+        ],
+        "explanation": "正确选项 A： 对于 1000 行的文件，二分搜索（Binary Search）的时间复杂度是 $\\log_2(1000) \\approx 10$ 次尝试。它是寻找单点故障最快的方法。<br>注意： Delta Debugging 虽然更强，但在讲义逻辑中，它是当二分搜索“失效（卡住）”后才用的进阶手段。"
+    },
+    {
+        "quiz": "Quiz 11",
+        "text": "Which of the following is an example of a loop invariant?\nJava\nx = 0; i = 2 \nwhile i <= 5: \n    x = x + i*i \n    i = i + 1",
+        "type": "single",
+        "options": [
+            "A. x = sum  of  squares  of  2..i",
+            "B. x = sum  of  squares  of  2..i-1",
+            "C. x = sum  of  squares  of  2..i-1",
+            "D. x = sum  of  squares  of  1..i"
+        ],
+        "correctAnswers": [
+            "B. x = sum  of  squares  of  2..i-1"
+        ],
+        "explanation": "正确选项 B： 循环不变式必须在进入循环前、循环中、循环后都为真。<br>进入前：$i=2, x=0$。此时 $2..(i-1)$ 即 $2..1$，为空集，和为 0。满足。<br>循环中：每次执行完 x = x + i*i; i = i + 1; 后。例如第一次后，$x=2^2, i=3$。此时 $x$ 正好是 $2..(3-1)$ 即 $2^2$。满足。<br>退出后：$i=6, x = 2^2+3^2+4^2+5^2$。此时 $x$ 是 $2..(6-1)$ 的平方和。满足。"
+    }
+        ];
+
+        // ==========================================
+        // 应用逻辑
+        // ==========================================
+        let currentQuestions = [];
+        let currentIndex = 0;
+
+        let wrongQuestionsIds = JSON.parse(localStorage.getItem('wrongQuestions')) || [];
+
+        function init() {
+            renderSidebar();
+            loadCategory('all');
+        }
+
+        function renderSidebar() {
+    const navContainer = document.getElementById('nav-container');
+    const categories = [...new Set(questionsDB.map(q => q.quiz))].sort((a, b) => {
+        const numA = parseInt(a.replace('Quiz ', ''));
+        const numB = parseInt(b.replace('Quiz ', ''));
+        return numA - numB;
+    });
+    
+    let html = `<div class="nav-item active" onclick="loadCategory('all', this)">🎲 全部题目 (随机打乱)</div>`;
+    
+    // 【新增】：加入错题集导航项，动态显示错题数量
+    html += `<div class="nav-item" onclick="loadWrongQuestions(this)" style="color: var(--danger); font-weight: bold;">
+                🚩 我的错题集 (${wrongQuestionsIds.length})
+             </div>`;
+
+    categories.forEach(cat => {
+        html += `<div class="nav-item" onclick="loadCategory('${cat}', this)">📄 ${cat}</div>`;
+    });
+    navContainer.innerHTML = html;
+}
+
+        function loadCategory(category, element = null) {
+            // 更新侧边栏高亮状态
+            if (element) {
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                element.classList.add('active');
+            }
+
+            if (category === 'all') {
+                // 克隆数组并随机打乱
+                currentQuestions = [...questionsDB].sort(() => Math.random() - 0.5);
+            } else {
+                currentQuestions = questionsDB.filter(q => q.quiz === category);
+            }
+
+            currentIndex = 0;
+            renderQuestion();
+        }
+
+        // 【新增】：加载错题集的逻辑
+function loadWrongQuestions(element) {
+    // 切换侧边栏高亮
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+
+    // 根据错题本里的文本（ID）过滤题库
+    currentQuestions = questionsDB.filter(q => wrongQuestionsIds.includes(q.text));
+
+    if (currentQuestions.length === 0) {
+        alert("🎉 太棒了，目前还没有错题！");
+        // 如果没有错题，退回到全部题目
+        loadCategory('all', document.querySelector('.nav-item')); 
+        return;
+    }
+
+    currentIndex = 0;
+    renderQuestion();
+}
+
+        function renderQuestion() {
+            if (currentQuestions.length === 0) return;
+
+            const q = currentQuestions[currentIndex];
+            
+            // 重置 UI
+            document.getElementById('feedback-area').style.display = 'none';
+            document.getElementById('next-btn').style.display = 'none';
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.innerText = "提交答案";
+
+            // 设置题目元信息
+            document.getElementById('quiz-source').innerText = `【${q.quiz}】 - 第 ${currentIndex + 1} / ${currentQuestions.length} 题`;
+            
+            const badge = document.getElementById('question-type-badge');
+            badge.style.display = 'inline-block';
+            if (q.type === 'single') {
+                badge.innerText = '● 单选题';
+                badge.className = 'question-type';
+            } else {
+                badge.innerText = '■ 多选题';
+                badge.className = 'question-type multiple';
+            }
+            
+            // 设置题目文本
+            document.getElementById('question-text').innerText = q.text;
+
+            // 生成选项
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            const inputType = q.type === 'single' ? 'radio' : 'checkbox';
+            
+            q.options.forEach((opt, index) => {
+                const id = `option-${index}`;
+                const div = document.createElement('label');
+                div.className = 'option-label';
+                div.innerHTML = `
+                    <input type="${inputType}" name="quiz-option" value="${opt}" id="${id}">
+                    <span style="flex:1;">${opt}</span>
+                `;
+                optionsContainer.appendChild(div);
+            });
+
+            // 重新渲染 MathJax 公式
+            if (window.MathJax) {
+                MathJax.typesetPromise();
+            }
+        }
+
+        function submitAnswer() {
+    const q = currentQuestions[currentIndex];
+    const inputs = document.querySelectorAll('input[name="quiz-option"]');
+    const optionLabels = document.querySelectorAll('.option-label');
+    
+    let selectedValues = [];
+    inputs.forEach(input => {
+        if (input.checked) {
+            selectedValues.push(input.value);
+        }
+    });
+
+    if (selectedValues.length === 0) {
+        alert("⚠️ 请先选择一个答案再提交！");
+        return;
+    }
+
+    // 锁定输入框和选项样式
+    inputs.forEach(input => input.disabled = true);
+    optionLabels.forEach(label => label.classList.add('disabled'));
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('submit-btn').innerText = "已提交";
+
+    // 判断对错
+    const isCorrect = arraysEqual(selectedValues.sort(), [...q.correctAnswers].sort());
+
+    // 【新增】：如果错了，且记录里还没这道题，就加进去并刷新侧边栏
+    if (!isCorrect) {
+        if (!wrongQuestionsIds.includes(q.text)) { 
+            wrongQuestionsIds.push(q.text);
+            localStorage.setItem('wrongQuestions', JSON.stringify(wrongQuestionsIds));
+            renderSidebar(); // 实时更新侧边栏的数字
+        }
+    }
+
+    // 显示反馈区域
+    const feedbackArea = document.getElementById('feedback-area');
+    const feedbackTitle = document.getElementById('feedback-title');
+    const explanationText = document.getElementById('explanation-text');
+
+    feedbackArea.style.display = 'block';
+    if (isCorrect) {
+        feedbackArea.className = 'feedback-correct';
+        feedbackTitle.innerHTML = "✅ 回答正确！";
+        feedbackTitle.style.color = "var(--success)";
+    } else {
+        feedbackArea.className = 'feedback-incorrect';
+        feedbackTitle.innerHTML = "❌ 回答错误";
+        feedbackTitle.style.color = "var(--danger)";
+    }
+
+    let expHtml = `<strong>🎯 正确答案：</strong><br> <span style="color:var(--text-dark);">${q.correctAnswers.join('<br>')}</span><br><br>`;
+    expHtml += `<strong>💡 解析：</strong><br> ${q.explanation}`;
+    
+    // 【新增】：如果在错题本里，提供移除按钮
+    if (wrongQuestionsIds.includes(q.text)) {
+        expHtml += `<br><br><button class="btn" style="background-color: #5f6368; padding: 6px 12px; font-size: 0.9rem;" onclick="removeFromWrong(this)">✅ 已掌握，移出错题集</button>`;
+    }
+
+    explanationText.innerHTML = expHtml;
+
+    if (window.MathJax) {
+        MathJax.typesetPromise([explanationText]);
+    }
+
+    // 显示“下一题”按钮
+    document.getElementById('submit-btn').style.display = 'none';
+    if (currentIndex < currentQuestions.length - 1) {
+        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('next-btn').innerText = "下一题 ➡";
+    } else {
+        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('next-btn').innerText = "🎉 已完成本组题目！返回打乱重做";
+        document.getElementById('next-btn').onclick = () => loadCategory('all', document.querySelector('.nav-item'));
+    }
+}
+
+// 【新增】：移出错题集的逻辑
+function removeFromWrong(btn) {
+    const currentText = currentQuestions[currentIndex].text;
+    wrongQuestionsIds = wrongQuestionsIds.filter(id => id !== currentText);
+    localStorage.setItem('wrongQuestions', JSON.stringify(wrongQuestionsIds));
+    renderSidebar(); // 刷新侧边栏数字
+    btn.disabled = true;
+    btn.innerText = "已移出";
+    btn.style.backgroundColor = "#dadce0";
+    btn.style.color = "#5f6368";
+}
+
+        function nextQuestion() {
+            currentIndex++;
+            renderQuestion();
+        }
+
+        // 辅助函数：判断两个数组内容是否完全一致
+        function arraysEqual(a, b) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; ++i) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }
+
+        // 启动应用
+        window.onload = init;
+    </script>
+</body>
+</html>
