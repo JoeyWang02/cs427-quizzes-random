@@ -2053,6 +2053,7 @@ function loadWrongQuestions(element) {
             // 重置 UI
             document.getElementById('feedback-area').style.display = 'none';
             document.getElementById('next-btn').style.display = 'none';
+            document.getElementById('next-btn').onclick = nextQuestion;
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.style.display = 'block';
             submitBtn.disabled = false;
@@ -2163,15 +2164,18 @@ function loadWrongQuestions(element) {
     }
 
     // 显示“下一题”按钮
-    document.getElementById('submit-btn').style.display = 'none';
-    if (currentIndex < currentQuestions.length - 1) {
-        document.getElementById('next-btn').style.display = 'block';
-        document.getElementById('next-btn').innerText = "下一题 ➡";
-    } else {
-        document.getElementById('next-btn').style.display = 'block';
-        document.getElementById('next-btn').innerText = "🎉 已完成本组题目！返回打乱重做";
-        document.getElementById('next-btn').onclick = () => loadCategory('all', document.querySelector('.nav-item'));
-    }
+            const nextBtn = document.getElementById('next-btn');
+            document.getElementById('submit-btn').style.display = 'none';
+            
+            if (currentIndex < currentQuestions.length - 1) {
+                nextBtn.style.display = 'block';
+                nextBtn.innerText = "下一题 ➡";
+                nextBtn.onclick = nextQuestion; // 确保功能是“下一题”
+            } else {
+                nextBtn.style.display = 'block';
+                nextBtn.innerText = "🎉 已完成本组题目！返回打乱重做";
+                nextBtn.onclick = () => loadCategory('all', document.querySelector('.nav-item'));
+            }
 }
 
 // 【新增】：移出错题集的逻辑
